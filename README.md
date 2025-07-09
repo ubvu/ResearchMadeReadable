@@ -230,6 +230,12 @@ For support and questions:
 - Submit issues through the project repository
 - For deployment on a Virtual Machine see [./docs/deployment.md](./docs/deployment.md)
 
+
+## Screenshots
+
+![](./docs/img/01-home.jpeg)
+![](./docs/img/02-generator.jpeg)
+![](./docs/img/03-evaluator.jpeg)
 ---
 
 **ResearchLens** - Making research accessible through AI-powered summarization.
