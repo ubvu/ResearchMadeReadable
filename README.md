@@ -34,6 +34,8 @@ A comprehensive Streamlit application for generating and evaluating AI-powered r
 
 ## Installation
 
+For full deployment on a production environment see the [Deployment guide](./docs/deployment.md).
+
 ### Prerequisites
 - Python 3.8 or higher
 - PostgreSQL database (automatically configured)
@@ -226,6 +228,7 @@ For support and questions:
 - Check the troubleshooting section
 - Review the documentation
 - Submit issues through the project repository
+- For deployment on a Virtual Machine see [./docs/deployment.md](./docs/deployment.md)
 
 ---
 
