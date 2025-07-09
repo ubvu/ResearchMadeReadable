@@ -83,8 +83,10 @@ def initialize_app():
     # Create database tables
     try:
         create_tables()
+        st.session_state.database_available = True
     except Exception as e:
-        st.error(f"Database initialization error: {str(e)}")
+        st.session_state.database_available = False
+        st.warning(f"Database not available: {str(e)}. Some features may be limited.")
 
 def render_sidebar():
     """Render the sidebar navigation."""
@@ -114,18 +116,21 @@ def render_sidebar():
     st.sidebar.markdown("---")
     st.sidebar.subheader("📈 Quick Stats")
     
-    try:
-        from src.database.operations import DatabaseOperations
-        db_ops = DatabaseOperations()
-        stats = db_ops.get_evaluation_stats()
-        
-        st.sidebar.metric("Total Evaluations", stats['total_evaluations'])
-        st.sidebar.metric("Avg Factuality", f"{stats['avg_factuality']}/5")
-        st.sidebar.metric("Avg Readability", f"{stats['avg_readability']}/5")
-        
-        db_ops.close()
-    except Exception as e:
-        st.sidebar.error("Unable to load stats")
+    if st.session_state.get('database_available', False):
+        try:
+            from src.database.operations import DatabaseOperations
+            db_ops = DatabaseOperations()
+            stats = db_ops.get_evaluation_stats()
+            
+            st.sidebar.metric("Total Evaluations", stats['total_evaluations'])
+            st.sidebar.metric("Avg Factuality", f"{stats['avg_factuality']}/5")
+            st.sidebar.metric("Avg Readability", f"{stats['avg_readability']}/5")
+            
+            db_ops.close()
+        except Exception as e:
+            st.sidebar.error("Unable to load stats")
+    else:
+        st.sidebar.info("Database not available")
     
     # Help section
     st.sidebar.markdown("---")

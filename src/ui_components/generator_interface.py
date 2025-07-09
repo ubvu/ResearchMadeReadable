@@ -79,10 +79,28 @@ class GeneratorInterface:
             if papers:
                 st.success(f"✅ Parsed {len(papers)} papers from BibTeX file")
                 
-                # Add to database and session state
-                for paper_data in papers:
-                    paper = self.db_ops.add_paper(**paper_data)
-                    st.session_state.parsed_papers.append(paper)
+                # Add to database and session state if database is available
+                if st.session_state.get('database_available', False):
+                    for paper_data in papers:
+                        paper = self.db_ops.add_paper(**paper_data)
+                        st.session_state.parsed_papers.append(paper)
+                else:
+                    # If database is not available, create mock paper objects
+                    for i, paper_data in enumerate(papers):
+                        # Create a simple mock paper object
+                        class MockPaper:
+                            def __init__(self, data):
+                                self.id = i + 1
+                                self.title = data['title']
+                                self.authors = data['authors']
+                                self.abstract = data['abstract']
+                                self.year = data['year']
+                                self.journal = data['journal']
+                                self.doi = data['doi']
+                                self.pdf_text = data.get('pdf_text', '')
+                        
+                        paper = MockPaper(paper_data)
+                        st.session_state.parsed_papers.append(paper)
                 
                 # Show preview
                 with st.expander("📋 Preview Parsed Papers"):
