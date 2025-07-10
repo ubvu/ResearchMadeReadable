@@ -227,8 +227,6 @@ For support and questions:
 - Check the troubleshooting section
 - Review the documentation
 - Submit issues through the project repository
-- For deployment on a Virtual Machine see [./docs/deployment.md](./docs/deployment.md)
-
 
 ## Screenshots
 
