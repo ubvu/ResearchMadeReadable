@@ -31,6 +31,8 @@ class GeneratorInterface:
             st.session_state.selected_paper = None
         if 'generated_summary' not in st.session_state:
             st.session_state.generated_summary = None
+        if 'summary_translations' not in st.session_state:
+            st.session_state.summary_translations = {}
         
         # Create two columns for layout
         col1, col2 = st.columns([1, 1])
@@ -259,6 +261,87 @@ class GeneratorInterface:
         except Exception as e:
             st.error(f"❌ Error generating summary: {str(e)}")
     
+    def _translate_summary(self, summary, target_language: str):
+        """Translate the summary to the target language."""
+        try:
+            # Check if translation already exists
+            if hasattr(summary, 'id'):
+                existing_translation = self.db_ops.get_translation_by_language(summary.id, target_language)
+                if existing_translation:
+                    # Load existing translation
+                    if summary.id not in st.session_state.summary_translations:
+                        st.session_state.summary_translations[summary.id] = {}
+                    st.session_state.summary_translations[summary.id][target_language] = {
+                        'content': existing_translation.translated_content,
+                        'model': existing_translation.model_used,
+                        'created_at': existing_translation.created_at
+                    }
+                    st.success(f"✅ Loaded existing {target_language} translation!")
+                    return
+            
+            # Use the same model as the original summary
+            model_name = summary.model_used
+            
+            # Show progress
+            with st.spinner(f"Translating summary to {target_language}..."):
+                translated_content = self.model_manager.translate_text(
+                    model_name, summary.content, target_language
+                )
+            
+            if translated_content:
+                # Save to database if summary has ID
+                if hasattr(summary, 'id'):
+                    translation_obj = self.db_ops.add_translation(
+                        summary_id=summary.id,
+                        target_language=target_language,
+                        translated_content=translated_content,
+                        model_used=model_name
+                    )
+                    
+                    # Store in session state
+                    if summary.id not in st.session_state.summary_translations:
+                        st.session_state.summary_translations[summary.id] = {}
+                    st.session_state.summary_translations[summary.id][target_language] = {
+                        'content': translated_content,
+                        'model': model_name,
+                        'created_at': translation_obj.created_at
+                    }
+                else:
+                    # Store in session state for mock objects
+                    mock_id = f"mock_{id(summary)}"
+                    if mock_id not in st.session_state.summary_translations:
+                        st.session_state.summary_translations[mock_id] = {}
+                    st.session_state.summary_translations[mock_id][target_language] = {
+                        'content': translated_content,
+                        'model': model_name,
+                        'created_at': 'Just now'
+                    }
+                
+                st.success(f"✅ Successfully translated to {target_language}!")
+            else:
+                st.error("❌ Failed to translate summary")
+                
+        except Exception as e:
+            st.error(f"❌ Error translating summary: {str(e)}")
+    
+    def _load_existing_translations(self, summary_id: int):
+        """Load existing translations from database."""
+        try:
+            translations = self.db_ops.get_translations_by_summary(summary_id)
+            if translations:
+                if summary_id not in st.session_state.summary_translations:
+                    st.session_state.summary_translations[summary_id] = {}
+                
+                for translation in translations:
+                    st.session_state.summary_translations[summary_id][translation.target_language] = {
+                        'content': translation.translated_content,
+                        'model': translation.model_used,
+                        'created_at': translation.created_at
+                    }
+        except Exception as e:
+            # Silently handle database errors for existing translations
+            pass
+    
     def _render_output_section(self):
         """Render output section."""
         st.subheader("📄 Generated Summary")
@@ -273,9 +356,58 @@ class GeneratorInterface:
             st.write(f"- **Temperature:** {summary.temperature}")
             st.write(f"- **Created:** {summary.created_at}")
             
-            # Show summary content
-            st.write("**Summary Content:**")
+            # Show original summary content
+            st.write("**Original Summary (English):**")
             st.write(summary.content)
+            
+            # Translation section
+            st.write("---")
+            st.subheader("🌍 Translation")
+            
+            # Available languages
+            languages = {
+                "Dutch": "Dutch",
+                "Spanish": "Spanish", 
+                "French": "French",
+                "German": "German",
+                "Italian": "Italian",
+                "Portuguese": "Portuguese",
+                "Chinese": "Chinese",
+                "Japanese": "Japanese",
+                "Korean": "Korean",
+                "Arabic": "Arabic",
+                "Russian": "Russian",
+                "Hindi": "Hindi"
+            }
+            
+            col1, col2 = st.columns([2, 1])
+            
+            with col1:
+                target_language = st.selectbox(
+                    "Select Target Language",
+                    list(languages.keys()),
+                    index=0,  # Dutch as default
+                    help="Choose the language for translation"
+                )
+            
+            with col2:
+                if st.button("🔄 Translate Summary", type="primary"):
+                    self._translate_summary(summary, target_language)
+            
+            # Show existing translations
+            translation_key = summary.id if hasattr(summary, 'id') else f"mock_{id(summary)}"
+            
+            # Load existing translations from database
+            if hasattr(summary, 'id'):
+                self._load_existing_translations(summary.id)
+            
+            # Display translations if available
+            if translation_key in st.session_state.summary_translations:
+                translations = st.session_state.summary_translations[translation_key]
+                if target_language in translations:
+                    st.write(f"**Translated Summary ({target_language}):**")
+                    st.write(translations[target_language]['content'])
+                    st.write(f"*Translated using {translations[target_language]['model']} at {translations[target_language]['created_at']}*")
             
             # Save button
             if st.button("💾 Save Summary"):

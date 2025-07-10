@@ -25,6 +25,40 @@ class BaseAIModel(ABC):
     def generate_summary(self, text: str, prompt: str, temperature: float = 0.7) -> Optional[str]:
         """Generate summary using the AI model."""
         pass
+    
+    def translate_text(self, text: str, target_language: str, temperature: float = 0.3) -> Optional[str]:
+        """Translate text to target language using the AI model."""
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            translation_prompt = f"""Please translate the following text to {target_language}. 
+            Maintain the original meaning, tone, and technical accuracy. 
+            Only return the translated text without any additional comments or explanations.
+            
+            Text to translate:
+            {text}"""
+            
+            payload = {
+                "model": self.model_name,
+                "messages": [
+                    {"role": "user", "content": translation_prompt}
+                ],
+                "temperature": temperature,
+                "max_tokens": 1000
+            }
+            
+            response = requests.post(self.base_url, headers=headers, json=payload)
+            response.raise_for_status()
+            
+            result = response.json()
+            return result['choices'][0]['message']['content'].strip()
+            
+        except Exception as e:
+            st.error(f"Error translating text with {self.model_name}: {str(e)}")
+            return None
 
 class OpenAIModel(BaseAIModel):
     """OpenAI GPT model interface."""
@@ -164,3 +198,12 @@ class ModelManager:
             return None
         
         return model.generate_summary(text, prompt, temperature)
+    
+    def translate_text(self, model_name: str, text: str, target_language: str, temperature: float = 0.3) -> Optional[str]:
+        """Translate text using specified model."""
+        model = self.get_model(model_name)
+        if not model:
+            st.error(f"Model '{model_name}' not found")
+            return None
+        
+        return model.translate_text(text, target_language, temperature)

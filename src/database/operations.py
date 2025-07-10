@@ -4,7 +4,7 @@ Database operations for the research summary application.
 """
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
-from .models import Paper, Summary, Evaluation, SessionLocal, get_db
+from .models import Paper, Summary, Evaluation, Translation, SessionLocal, get_db
 from typing import List, Optional, Dict, Any
 import pandas as pd
 
@@ -65,6 +65,32 @@ class DatabaseOperations:
         self.db.commit()
         self.db.refresh(evaluation)
         return evaluation
+    
+    def add_translation(self, summary_id: int, target_language: str, translated_content: str, 
+                       model_used: str, temperature: float = 0.3) -> Translation:
+        """Add a new translation to the database."""
+        translation = Translation(
+            summary_id=summary_id,
+            target_language=target_language,
+            translated_content=translated_content,
+            model_used=model_used,
+            temperature=temperature
+        )
+        self.db.add(translation)
+        self.db.commit()
+        self.db.refresh(translation)
+        return translation
+    
+    def get_translations_by_summary(self, summary_id: int) -> List[Translation]:
+        """Get all translations for a specific summary."""
+        return self.db.query(Translation).filter(Translation.summary_id == summary_id).all()
+    
+    def get_translation_by_language(self, summary_id: int, target_language: str) -> Optional[Translation]:
+        """Get translation for a specific summary and language."""
+        return self.db.query(Translation).filter(
+            Translation.summary_id == summary_id,
+            Translation.target_language == target_language
+        ).first()
     
     def get_papers_with_summaries(self, limit: int = 50) -> List[Paper]:
         """Get papers that have summaries for evaluation."""

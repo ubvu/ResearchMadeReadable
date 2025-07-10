@@ -52,6 +52,21 @@ class Summary(Base):
     # Relationships
     paper = relationship("Paper", back_populates="summaries")
     evaluations = relationship("Evaluation", back_populates="summary")
+    translations = relationship("Translation", back_populates="summary")
+
+class Translation(Base):
+    __tablename__ = "translations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    summary_id = Column(Integer, ForeignKey("summaries.id"), nullable=False)
+    target_language = Column(String(50), nullable=False)
+    translated_content = Column(Text, nullable=False)
+    model_used = Column(String(50), nullable=False)
+    temperature = Column(Float, default=0.3)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    summary = relationship("Summary", back_populates="translations")
 
 class Evaluation(Base):
     __tablename__ = "evaluations"
