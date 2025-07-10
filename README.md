@@ -86,6 +86,56 @@ mkdir -p data/uploads data/exports data/db logs
 
 > **Simplified Setup**: No database server installation or configuration needed! DuckDB and Parquet files are created automatically in the `data/db/` directory.
 
+## Screenshots
+
+The following screenshots showcase the key interfaces and features of the Research made Readable application:
+
+### Home Page - Role Selection
+![Home Page](images/home.png)
+
+The home page welcomes users with a clean interface featuring the application title "Research made Readable" and role-based navigation. Users can choose between different roles (Content Generator, Content Evaluator) to access specific functionality tailored to their needs.
+
+### Generator Interface - Summary Creation
+![Generator Interface](images/generator.png)
+
+The Generator interface provides comprehensive tools for creating AI-powered research summaries. Key features include:
+- File upload support for BibTeX and PDF files
+- AI model selection (GPT-4, Claude, Deepseek, etc.)
+- Input mode selection (Abstract or Full PDF processing)
+- Configurable parameters including temperature control
+- Multiple prompt templates (Layman, Technical, Executive, Educational)
+- Custom prompt editing capabilities
+
+### Generator Interface - Configuration Options
+![Generator Configuration](images/generator_translation.png)
+
+The generator interface shows detailed configuration options including:
+- AI model dropdown with multiple options (GPT-4, Claude-3-Sonnet, etc.)
+- Temperature slider for controlling output creativity (0.00 to 1.00)
+- Prompt template selection with predefined options
+- Custom prompt text area for personalized instructions
+- Generate Summary button to initiate the AI processing
+
+### Evaluator Interface - Quality Assessment
+![Evaluator Interface](images/evaluator.png)
+
+The Evaluator interface enables comprehensive quality assessment of generated summaries:
+- Side-by-side comparison of original abstracts and AI-generated summaries
+- Factuality rating system (1-5 scale) to assess accuracy
+- Readability rating system (1-5 scale) to evaluate clarity and comprehension
+- Optional comments section for detailed feedback
+- Submit, Skip, and Refresh buttons for efficient evaluation workflow
+
+### Analytics Dashboard - Performance Insights
+![Analytics Dashboard](images/dashboard.png)
+
+The Analytics Dashboard provides comprehensive insights into summary generation and evaluation performance:
+- Overview of analytics and insights from summary evaluations
+- Performance metrics visualization
+- Data-driven insights for model comparison
+- Export functionality for detailed analysis
+- Clean, professional interface for monitoring application usage
+
 ## Usage
 
 ### For Content Generators
