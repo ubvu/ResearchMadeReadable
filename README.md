@@ -1,5 +1,4 @@
-
-# ResearchLens - AI-Powered Research Summary Platform
+# Research made Readable - AI-Powered Research Summary Platform
 
 A comprehensive Streamlit application for generating and evaluating AI-powered research paper summaries.
 
@@ -236,6 +235,8 @@ For support and questions:
 ![](./docs/img/01-home.jpeg)
 ![](./docs/img/02-generator.jpeg)
 ![](./docs/img/03-evaluator.jpeg)
+
 ---
 
-**ResearchLens** - Making research accessible through AI-powered summarization.
+**Research made Readable** - Making research accessible through AI-powered summarization.
+

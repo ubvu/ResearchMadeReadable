@@ -16,7 +16,7 @@ class DashboardInterface:
     
     def render(self):
         """Render the dashboard interface."""
-        st.title("📈 Research Summary Dashboard")
+        st.title("📈 Analytics Dashboard")
         st.write("Analytics and insights from summary evaluations")
         
         try:

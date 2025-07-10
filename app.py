@@ -18,7 +18,7 @@ from src.database.models import create_tables
 
 # Page configuration
 st.set_page_config(
-    page_title="ResearchLens - AI Summary & Evaluation",
+    page_title="Research made Readable - AI Summary & Evaluation",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -91,7 +91,7 @@ def initialize_app():
 def render_sidebar():
     """Render the sidebar navigation."""
     st.sidebar.markdown('<div class="sidebar-nav">', unsafe_allow_html=True)
-    st.sidebar.title("🔍 ResearchLens")
+    st.sidebar.title("🔍 Research made Readable")
     st.sidebar.markdown("*AI-Powered Research Summary Platform*")
     st.sidebar.markdown('</div>', unsafe_allow_html=True)
     
@@ -145,12 +145,12 @@ def render_sidebar():
 
 def render_home_page():
     """Render the home page with role selection."""
-    st.markdown('<h1 class="main-header">🔍 ResearchLens</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🔍 Research made Readable</h1>', unsafe_allow_html=True)
     st.markdown('<p class="sub-header">AI-Powered Research Summary Generation & Evaluation Platform</p>', unsafe_allow_html=True)
     
     # Introduction
     st.markdown("""
-    Welcome to ResearchLens, a comprehensive platform for generating and evaluating AI-powered research paper summaries.
+    Welcome to Research made Readable, a comprehensive platform for generating and evaluating AI-powered research paper summaries.
     This tool helps researchers, students, and academics quickly understand complex research papers through intelligent summarization.
     """)
     
@@ -225,9 +225,9 @@ def render_home_page():
         """)
     
     # About section
-    with st.expander("ℹ️ About ResearchLens"):
+    with st.expander("ℹ️ About Research made Readable"):
         st.markdown("""
-        ResearchLens is designed to bridge the gap between complex academic research and accessible understanding.
+        Research made Readable is designed to bridge the gap between complex academic research and accessible understanding.
         Our platform leverages state-of-the-art AI models to create high-quality summaries that maintain scientific
         accuracy while improving readability for diverse audiences.
         
@@ -272,7 +272,7 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style="text-align: center; color: #6B7280; padding: 2rem;">
-        <p>ResearchLens - AI-Powered Research Summary Platform</p>
+        <p>Research made Readable - AI-Powered Research Summary Platform</p>
         <p>Built with ❤️ using Streamlit</p>
     </div>
     """, unsafe_allow_html=True)

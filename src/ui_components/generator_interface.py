@@ -21,7 +21,7 @@ class GeneratorInterface:
     
     def render(self):
         """Render the content generator interface."""
-        st.title("📚 Research Summary Generator")
+        st.title("📚 Summary Generator")
         st.write("Upload research papers and generate AI-powered summaries")
         
         # Initialize session state

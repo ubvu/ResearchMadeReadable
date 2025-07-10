@@ -1,7 +1,7 @@
 
-# Deployment Guide for ResearchLens
+# Deployment Guide for Research made Readable
 
-This guide provides instructions for deploying the ResearchLens application on an external Virtual Machine (VM).
+This guide provides instructions for deploying the Research made Readable application on an external Virtual Machine (VM).
 
 ## Prerequisites
 
@@ -23,8 +23,8 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3 python3-pip python3-venv git nginx supervisor postgresql postgresql-contrib
 
 # Create application user
-sudo useradd -m -s /bin/bash researchlens
-sudo usermod -aG sudo researchlens
+sudo useradd -m -s /bin/bash research-made-readable
+sudo usermod -aG sudo research-made-readable
 ```
 
 ### 2. Database Setup
@@ -34,9 +34,9 @@ sudo usermod -aG sudo researchlens
 sudo -u postgres psql
 
 # Create database and user
-CREATE DATABASE researchlens;
-CREATE USER researchlens WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE researchlens TO researchlens;
+CREATE DATABASE research_made_readable;
+CREATE USER research_made_readable WITH PASSWORD 'your_secure_password';
+GRANT ALL PRIVILEGES ON DATABASE research_made_readable TO research_made_readable;
 \q
 
 # Configure PostgreSQL
@@ -44,7 +44,7 @@ sudo nano /etc/postgresql/12/main/postgresql.conf
 # Uncomment and set: listen_addresses = 'localhost'
 
 sudo nano /etc/postgresql/12/main/pg_hba.conf
-# Add line: local   researchlens    researchlens                    md5
+# Add line: local   research_made_readable    research_made_readable                    md5
 
 # Restart PostgreSQL
 sudo systemctl restart postgresql
@@ -54,11 +54,11 @@ sudo systemctl restart postgresql
 
 ```bash
 # Switch to application user
-sudo -u researchlens -i
+sudo -u research-made-readable -i
 
 # Clone the application
-git clone <repository-url> /home/researchlens/research_summary_app
-cd /home/researchlens/research_summary_app
+git clone <repository-url> /home/research-made-readable/research_summary_app
+cd /home/research-made-readable/research_summary_app
 
 # Create virtual environment
 python3 -m venv venv
@@ -69,7 +69,7 @@ pip install -r requirements.txt
 
 # Create environment file
 cat > .env << EOF
-DATABASE_URL=postgresql://researchlens:your_secure_password@localhost/researchlens
+DATABASE_URL=postgresql://research_made_readable:your_secure_password@localhost/research_made_readable
 ABACUSAI_API_KEY=your_api_key_here
 EOF
 
@@ -84,7 +84,7 @@ python setup.py
 
 ```bash
 # Create Nginx configuration
-sudo nano /etc/nginx/sites-available/researchlens
+sudo nano /etc/nginx/sites-available/research-made-readable
 
 # Add configuration:
 server {
@@ -106,7 +106,7 @@ server {
 }
 
 # Enable site
-sudo ln -s /etc/nginx/sites-available/researchlens /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/research-made-readable /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -115,23 +115,23 @@ sudo systemctl reload nginx
 
 ```bash
 # Create supervisor configuration
-sudo nano /etc/supervisor/conf.d/researchlens.conf
+sudo nano /etc/supervisor/conf.d/research-made-readable.conf
 
 # Add configuration:
-[program:researchlens]
-command=/home/researchlens/research_summary_app/venv/bin/streamlit run app.py --server.port=8501 --server.address=localhost
-directory=/home/researchlens/research_summary_app
-user=researchlens
+[program:research-made-readable]
+command=/home/research-made-readable/research_summary_app/venv/bin/streamlit run app.py --server.port=8501 --server.address=localhost
+directory=/home/research-made-readable/research_summary_app
+user=research-made-readable
 autostart=true
 autorestart=true
 redirect_stderr=true
-stdout_logfile=/var/log/researchlens.log
-environment=PATH="/home/researchlens/research_summary_app/venv/bin"
+stdout_logfile=/var/log/research-made-readable.log
+environment=PATH="/home/research-made-readable/research_summary_app/venv/bin"
 
 # Update supervisor
 sudo supervisorctl reread
 sudo supervisorctl update
-sudo supervisorctl start researchlens
+sudo supervisorctl start research-made-readable
 ```
 
 ### 6. SSL Certificate (Optional but Recommended)
@@ -154,26 +154,26 @@ sudo crontab -e
 
 ```bash
 # Check application status
-sudo supervisorctl status researchlens
+sudo supervisorctl status research-made-readable
 
 # View logs
-sudo tail -f /var/log/researchlens.log
+sudo tail -f /var/log/research-made-readable.log
 
 # Restart application
-sudo supervisorctl restart researchlens
+sudo supervisorctl restart research-made-readable
 ```
 
 ### 2. Database Maintenance
 
 ```bash
 # Backup database
-sudo -u postgres pg_dump researchlens > backup_$(date +%Y%m%d).sql
+sudo -u postgres pg_dump research_made_readable > backup_$(date +%Y%m%d).sql
 
 # Restore database
-sudo -u postgres psql researchlens < backup_20240101.sql
+sudo -u postgres psql research_made_readable < backup_20240101.sql
 
 # Database maintenance
-sudo -u postgres psql researchlens -c "VACUUM ANALYZE;"
+sudo -u postgres psql research_made_readable -c "VACUUM ANALYZE;"
 ```
 
 ### 3. System Updates
@@ -183,12 +183,12 @@ sudo -u postgres psql researchlens -c "VACUUM ANALYZE;"
 sudo apt update && sudo apt upgrade -y
 
 # Update Python packages
-cd /home/researchlens/research_summary_app
+cd /home/research-made-readable/research_summary_app
 source venv/bin/activate
 pip install --upgrade -r requirements.txt
 
 # Restart services
-sudo supervisorctl restart researchlens
+sudo supervisorctl restart research-made-readable
 ```
 
 ## Security Considerations
@@ -211,12 +211,12 @@ sudo ufw enable
 
 ```bash
 # Set proper file permissions
-sudo chown -R researchlens:researchlens /home/researchlens/research_summary_app
-sudo chmod -R 755 /home/researchlens/research_summary_app
-sudo chmod 600 /home/researchlens/research_summary_app/.env
+sudo chown -R research-made-readable:research-made-readable /home/research-made-readable/research_summary_app
+sudo chmod -R 755 /home/research-made-readable/research_summary_app
+sudo chmod 600 /home/research-made-readable/research_summary_app/.env
 
 # Configure secure headers in Nginx
-sudo nano /etc/nginx/sites-available/researchlens
+sudo nano /etc/nginx/sites-available/research-made-readable
 # Add to server block:
 add_header X-Frame-Options DENY;
 add_header X-Content-Type-Options nosniff;
@@ -242,42 +242,42 @@ sudo systemctl restart postgresql
 
 ```bash
 # Create backup script
-sudo nano /home/researchlens/backup.sh
+sudo nano /home/research-made-readable/backup.sh
 
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/home/researchlens/backups"
+BACKUP_DIR="/home/research-made-readable/backups"
 mkdir -p $BACKUP_DIR
 
 # Database backup
-sudo -u postgres pg_dump researchlens > $BACKUP_DIR/db_backup_$DATE.sql
+sudo -u postgres pg_dump research_made_readable > $BACKUP_DIR/db_backup_$DATE.sql
 
 # Application backup
-tar -czf $BACKUP_DIR/app_backup_$DATE.tar.gz /home/researchlens/research_summary_app
+tar -czf $BACKUP_DIR/app_backup_$DATE.tar.gz /home/research-made-readable/research_summary_app
 
 # Clean old backups (keep last 30 days)
 find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
 find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
 
 # Make executable
-sudo chmod +x /home/researchlens/backup.sh
+sudo chmod +x /home/research-made-readable/backup.sh
 
 # Add to crontab
 sudo crontab -e
-# Add: 0 2 * * * /home/researchlens/backup.sh
+# Add: 0 2 * * * /home/research-made-readable/backup.sh
 ```
 
 ### 2. Recovery Procedures
 
 ```bash
 # Restore database
-sudo -u postgres psql researchlens < /home/researchlens/backups/db_backup_YYYYMMDD_HHMMSS.sql
+sudo -u postgres psql research_made_readable < /home/research-made-readable/backups/db_backup_YYYYMMDD_HHMMSS.sql
 
 # Restore application
-tar -xzf /home/researchlens/backups/app_backup_YYYYMMDD_HHMMSS.tar.gz -C /
+tar -xzf /home/research-made-readable/backups/app_backup_YYYYMMDD_HHMMSS.tar.gz -C /
 
 # Restart services
-sudo supervisorctl restart researchlens
+sudo supervisorctl restart research-made-readable
 ```
 
 ## Performance Optimization
@@ -300,7 +300,7 @@ max_connections = 100
 
 ```bash
 # Configure Streamlit for production
-nano /home/researchlens/research_summary_app/.streamlit/config.toml
+nano /home/research-made-readable/research_summary_app/.streamlit/config.toml
 
 [server]
 maxUploadSize = 200
@@ -372,4 +372,4 @@ textColor = "#1F2937"
 
 ---
 
-This deployment guide provides a comprehensive setup for production deployment of ResearchLens on an external VM. Adjust configurations based on your specific requirements and security policies.
+This deployment guide provides a comprehensive setup for production deployment of Research made Readable on an external VM. Adjust configurations based on your specific requirements and security policies.

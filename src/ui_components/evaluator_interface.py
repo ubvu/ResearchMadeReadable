@@ -30,7 +30,7 @@ class EvaluatorInterface:
     
     def render(self):
         """Render the content evaluator interface."""
-        st.title("🔍 Research Summary Evaluator")
+        st.title("🔍 Summary Evaluator")
         st.write("Review and rate AI-generated summaries for quality and accuracy")
         
         # Initialize session state
