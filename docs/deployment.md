@@ -55,12 +55,11 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create environment file (only API key needed)
-cat > .env << EOF
-ABACUSAI_API_KEY=your_api_key_here
-EOF
+# Set up environment configuration (see detailed section below)
+cp .env-example .env
+nano .env  # Edit with your actual API key
 
-# Set permissions
+# Set secure permissions
 chmod 600 .env
 
 # Create required directories
@@ -70,7 +69,136 @@ mkdir -p data/db data/uploads data/exports logs
 python setup.py
 ```
 
-### 4. Nginx Configuration
+### 4. Environment Configuration
+
+#### 🔑 API Key Setup (REQUIRED)
+
+The application requires an AbacusAI API key to access all AI models. Here's how to set it up securely in production:
+
+1. **Obtain your AbacusAI API key:**
+   - Visit [AbacusAI](https://abacus.ai/)
+   - Sign up for an account or log in
+   - Navigate to your account settings or API section
+   - Generate a new API key
+   - Copy the key for configuration
+
+2. **Configure environment variables:**
+   ```bash
+   # Edit the .env file with your actual API key
+   nano .env
+   
+   # Add your API key (replace with your actual key)
+   ABACUSAI_API_KEY=your_actual_api_key_here
+   
+   # Optional: Add other configuration settings
+   # LOG_LEVEL=INFO
+   # DEBUG=False
+   # MAX_UPLOAD_SIZE=10
+   ```
+
+3. **Secure the environment file:**
+   ```bash
+   # Set restrictive permissions (owner read/write only)
+   chmod 600 .env
+   
+   # Verify permissions
+   ls -la .env
+   # Should show: -rw------- 1 research-made-readable research-made-readable
+   ```
+
+#### 🔒 Production Security Considerations
+
+**Environment Variables Security:**
+- Never commit the `.env` file to version control
+- Use restrictive file permissions (600 or 640 maximum)
+- Consider using system environment variables for enhanced security:
+  ```bash
+  # Alternative: Set system environment variable
+  echo 'export ABACUSAI_API_KEY="your_key_here"' >> ~/.bashrc
+  source ~/.bashrc
+  ```
+
+**API Key Management:**
+- Use separate API keys for development and production
+- Monitor API usage through your AbacusAI dashboard
+- Set up usage alerts to prevent unexpected charges
+- Rotate API keys regularly for security
+
+**Network Security:**
+- Restrict API access to your server's IP if possible
+- Use HTTPS in production (see SSL Certificate section)
+- Consider using a reverse proxy for additional security
+
+#### 💰 Cost Management and Monitoring
+
+**API Usage Optimization:**
+- Monitor API usage through AbacusAI dashboard
+- Set up billing alerts and usage limits
+- Use lower-cost models (e.g., GPT-4-Mini) for development/testing
+- Implement rate limiting to prevent abuse
+
+**Usage Tracking:**
+```bash
+# Monitor application logs for API usage
+tail -f logs/streamlit.log | grep -i "api\|error"
+
+# Check supervisor logs
+tail -f /var/log/research-made-readable.log
+```
+
+#### 🛠️ Troubleshooting Environment Issues
+
+**Common API Key Issues:**
+
+1. **Invalid API Key Error:**
+   ```bash
+   # Check if API key is set
+   grep ABACUSAI_API_KEY .env
+   
+   # Test API key validity
+   curl -H "Authorization: Bearer your_api_key_here" \
+        https://apps.abacus.ai/v1/chat/completions
+   ```
+
+2. **Permission Errors:**
+   ```bash
+   # Fix file permissions
+   sudo chown research-made-readable:research-made-readable .env
+   chmod 600 .env
+   ```
+
+3. **Environment Not Loading:**
+   ```bash
+   # Verify python-dotenv is installed
+   pip list | grep python-dotenv
+   
+   # Check if .env file exists in correct location
+   ls -la .env
+   ```
+
+**Environment Validation Script:**
+```bash
+# Create a simple validation script
+cat > validate_env.py << 'EOF'
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+api_key = os.getenv('ABACUSAI_API_KEY')
+if api_key:
+    print(f"✅ API key found: {api_key[:10]}...")
+else:
+    print("❌ API key not found")
+    
+print(f"✅ Working directory: {os.getcwd()}")
+print(f"✅ .env file exists: {os.path.exists('.env')}")
+EOF
+
+python validate_env.py
+```
+
+### 5. Nginx Configuration
 
 ```bash
 # Create Nginx configuration
@@ -101,7 +229,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 5. Supervisor Configuration
+### 6. Supervisor Configuration
 
 ```bash
 # Create supervisor configuration
@@ -124,7 +252,7 @@ sudo supervisorctl update
 sudo supervisorctl start research-made-readable
 ```
 
-### 6. SSL Certificate (Optional but Recommended)
+### 7. SSL Certificate (Optional but Recommended)
 
 ```bash
 # Install Certbot
@@ -156,11 +284,14 @@ sudo supervisorctl restart research-made-readable
 ### 2. Data Backup and Maintenance
 
 ```bash
-# Backup all data (simple file copy)
+# Backup all data including environment configuration
 cd /home/research-made-readable/research_summary_app
-tar -czf backup_$(date +%Y%m%d).tar.gz data/db/
 
-# Alternative: Copy data directory
+# Create comprehensive backup (data + configuration)
+tar -czf backup_$(date +%Y%m%d).tar.gz data/db/ logs/ .env-example
+# Note: .env file is excluded for security - document API key separately
+
+# Alternative: Copy data directory only
 cp -r data/db/ ../backups/backup_$(date +%Y%m%d)/
 
 # Restore data (simple file copy)
@@ -175,6 +306,45 @@ print('Tables:', conn.execute('SHOW TABLES').fetchall())
 conn.close()
 print('Data verification complete')
 "
+```
+
+**Environment Configuration Backup:**
+- **Do NOT backup the `.env` file** in version control or regular backups
+- **Securely document your API key** in a password manager or secure note
+- **Keep a copy of `.env-example`** for reference when setting up new environments
+- **Test environment restoration** by validating API key access after restore
+
+**Automated Backup Script:**
+```bash
+#!/bin/bash
+# Create automated backup script
+cat > backup_app.sh << 'EOF'
+#!/bin/bash
+BACKUP_DIR="/home/research-made-readable/backups"
+APP_DIR="/home/research-made-readable/research_summary_app"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p $BACKUP_DIR
+cd $APP_DIR
+
+# Backup data and logs (excluding sensitive .env file)
+tar -czf $BACKUP_DIR/research_app_backup_$DATE.tar.gz \
+    data/db/ \
+    logs/ \
+    .env-example \
+    --exclude='.env'
+
+echo "Backup completed: $BACKUP_DIR/research_app_backup_$DATE.tar.gz"
+
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "research_app_backup_*.tar.gz" -mtime +7 -delete
+EOF
+
+chmod +x backup_app.sh
+
+# Add to crontab for daily backup
+crontab -e
+# Add: 0 2 * * * /home/research-made-readable/research_summary_app/backup_app.sh
 ```
 
 ### 3. System Updates

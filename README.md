@@ -37,8 +37,62 @@ A comprehensive Streamlit application for generating and evaluating AI-powered r
 ### Prerequisites
 - Python 3.8 or higher
 - Internet connection for AI model access
+- AbacusAI API key (required for AI model access)
 
 > **Note**: No external database installation required! The application uses DuckDB with Parquet file storage for a completely self-contained setup.
+
+## Environment Setup
+
+### 🔑 API Key Configuration (REQUIRED)
+
+The application uses AbacusAI's unified API to access all AI models (GPT-4, Claude, Deepseek, Llama, Mistral) through a single API key.
+
+1. **Get your AbacusAI API key:**
+   - Visit [AbacusAI](https://abacus.ai/)
+   - Sign up for an account or log in
+   - Navigate to your account settings or API section
+   - Generate a new API key
+   - Copy the key for the next step
+
+2. **Set up environment variables:**
+   ```bash
+   # Copy the example environment file
+   cp .env-example .env
+   
+   # Edit the .env file and add your API key
+   nano .env
+   # OR use any text editor of your choice
+   ```
+
+3. **Configure your API key in the .env file:**
+   ```bash
+   # Replace 'your_abacusai_api_key_here' with your actual API key
+   ABACUSAI_API_KEY=your_actual_api_key_here
+   ```
+
+### 💰 API Usage and Costs
+
+**Important considerations:**
+- The AbacusAI API provides access to premium AI models and may have usage limits
+- API usage may incur costs depending on your AbacusAI plan
+- Monitor your API usage through your AbacusAI dashboard
+- Consider starting with smaller batches to understand usage patterns
+
+### 🔒 Security Best Practices
+
+**Keep your API key secure:**
+- Never commit the `.env` file to version control
+- Never share your API key publicly
+- Store it securely and treat it like a password
+- Consider using environment variables in production deployments
+
+### ✅ Verify Your Setup
+
+After setting up your API key, you can verify it works by:
+1. Starting the application (see Quick Setup below)
+2. Navigating to the Generator interface
+3. Trying to generate a summary with a small test input
+4. Check that the AI models are accessible and responding
 
 ### Quick Setup
 
@@ -77,11 +131,21 @@ pip install -r requirements.txt
 ```
 
 2. **Set up environment variables**
-The application uses DuckDB for local data storage and AI model APIs. Database initialization is automatic on first run.
+Follow the [Environment Setup](#environment-setup) section above to configure your AbacusAI API key.
 
 3. **Create required directories**
 ```bash
 mkdir -p data/uploads data/exports data/db logs
+```
+
+4. **Initialize the database**
+```bash
+python -c "from src.database.models import create_tables; create_tables()"
+```
+
+5. **Start the application**
+```bash
+streamlit run app.py
 ```
 
 > **Simplified Setup**: No database server installation or configuration needed! DuckDB and Parquet files are created automatically in the `data/db/` directory.
