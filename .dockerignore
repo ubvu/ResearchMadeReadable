@@ -1,0 +1,92 @@
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing and debugging files
+tests_and_debug/
+*.test
+*.spec
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# Documentation that's not needed in container
+docs/
+*.md
+LICENSE
+README.md
+
+# Docker files (no need to copy these into the container)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment files (should be passed via environment variables)
+.env
+.env.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Large files that might not be needed
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Images directory (if they're just for documentation)
+images/

@@ -150,6 +150,153 @@ streamlit run app.py
 
 > **Simplified Setup**: No database server installation or configuration needed! DuckDB and Parquet files are created automatically in the `data/db/` directory.
 
+## 🐳 Docker Deployment
+
+For the easiest and most portable deployment, you can run the application using Docker. This method ensures consistent behavior across different operating systems and eliminates dependency issues.
+
+### Prerequisites for Docker Deployment
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed on your system
+- Your AbacusAI API key (see [Environment Setup](#environment-setup) section above)
+
+### Quick Docker Setup
+
+1. **Clone or download the application**
+```bash
+cd /home/ubuntu
+git clone <repository-url> research_summary_app
+# OR extract from ZIP file
+```
+
+2. **Navigate to the project directory**
+```bash
+cd research_summary_app
+```
+
+3. **Set up environment variables for Docker**
+```bash
+# Copy the Docker environment example file
+cp .env.docker-example .env
+
+# Edit the .env file and add your API key
+nano .env
+# OR use any text editor of your choice
+```
+
+4. **Configure your API key in the .env file**
+```bash
+# Replace 'your_abacusai_api_key_here' with your actual API key
+ABACUSAI_API_KEY=your_actual_api_key_here
+```
+
+5. **Build and run with Docker Compose**
+```bash
+# Build and start the application
+docker-compose up --build
+
+# OR run in detached mode (background)
+docker-compose up -d --build
+```
+
+6. **Access the application**
+Open your browser and navigate to `http://localhost:8501`
+
+### Docker Commands Reference
+
+```bash
+# Start the application (build if needed)
+docker-compose up --build
+
+# Start in background (detached mode)
+docker-compose up -d
+
+# Stop the application
+docker-compose down
+
+# View application logs
+docker-compose logs -f
+
+# Rebuild the image (if you made changes)
+docker-compose build --no-cache
+
+# View running containers
+docker-compose ps
+
+# Access the container shell (for debugging)
+docker-compose exec research-app /bin/bash
+```
+
+### Docker Deployment Benefits
+
+✅ **Consistent Environment**: Same behavior across Windows, macOS, and Linux  
+✅ **Easy Setup**: No need to install Python, dependencies, or manage versions  
+✅ **Isolation**: Application runs in its own container without affecting your system  
+✅ **Data Persistence**: Your data is automatically saved and persists between container restarts  
+✅ **Easy Updates**: Simply pull new code and rebuild to update the application  
+
+### Docker Troubleshooting
+
+**Port Already in Use**
+```bash
+# If port 8501 is already in use, modify docker-compose.yml
+# Change the ports section to use a different port:
+ports:
+  - "8502:8501"  # Use port 8502 instead
+```
+
+**Permission Issues on Linux/macOS**
+```bash
+# Fix data directory permissions
+sudo chown -R $USER:$USER ./data ./logs
+chmod -R 755 ./data ./logs
+```
+
+**Container Won't Start**
+```bash
+# Check logs for errors
+docker-compose logs research-app
+
+# Check if all required environment variables are set
+docker-compose config
+```
+
+**API Key Not Working**
+```bash
+# Verify your .env file is properly configured
+cat .env
+
+# Make sure the API key is valid by testing it manually
+# The container logs will show warnings if the API key is missing
+```
+
+**Database Issues**
+```bash
+# If you encounter database issues, you can reset the data
+# WARNING: This will delete all your data
+rm -rf ./data/db/*
+docker-compose restart
+```
+
+### Docker Production Deployment
+
+For production deployment, consider these additional configurations:
+
+1. **Use a reverse proxy** (nginx, Traefik) for SSL termination
+2. **Set up monitoring** and health checks
+3. **Configure backup strategies** for the data directory
+4. **Use Docker secrets** for sensitive environment variables
+5. **Consider using Docker Swarm** or Kubernetes for scaling
+
+### Docker vs. Traditional Installation
+
+| Feature | Docker | Traditional |
+|---------|--------|-------------|
+| Setup Time | ⚡ 5 minutes | 🕐 10-15 minutes |
+| Dependencies | ✅ Included | ❌ Manual install |
+| Portability | ✅ Works everywhere | ❌ OS-specific |
+| Isolation | ✅ Containerized | ❌ System-wide |
+| Updates | ✅ Simple rebuild | ❌ Manual process |
+
 ## Screenshots
 
 The following screenshots showcase the key interfaces and features of the Research made Readable application:

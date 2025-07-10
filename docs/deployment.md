@@ -1,10 +1,21 @@
 
 # Deployment Guide for Research made Readable
 
-This guide provides instructions for deploying the Research made Readable application on an external Virtual Machine (VM).
+This guide provides instructions for deploying the Research made Readable application using multiple deployment methods:
+
+1. **🐳 Docker Deployment** (Recommended - Easiest)
+2. **🖥️ Traditional VM Deployment** (Manual installation)
+3. **☁️ Cloud Platform Deployment** (Platform-specific)
 
 ## Prerequisites
 
+### For Docker Deployment (Recommended)
+- Docker and Docker Compose installed on the host system
+- 2GB RAM minimum (4GB recommended)
+- 5GB disk space minimum
+- Your AbacusAI API key
+
+### For Traditional VM Deployment
 - Ubuntu 20.04 LTS or later
 - Python 3.8 or higher
 - 2GB RAM minimum (4GB recommended)
@@ -12,7 +23,297 @@ This guide provides instructions for deploying the Research made Readable applic
 
 > **Simplified Deployment**: No external database installation required! The application uses DuckDB with Parquet file storage for a completely self-contained setup.
 
-## VM Setup
+## 🐳 Docker Deployment (Recommended)
+
+Docker deployment provides the easiest and most reliable way to deploy the Research made Readable application. This method ensures consistent behavior across different operating systems and eliminates dependency issues.
+
+### Docker Deployment Benefits
+
+✅ **Consistent Environment**: Same behavior across all platforms  
+✅ **Easy Setup**: No manual dependency management  
+✅ **Isolation**: Application runs in its own container  
+✅ **Data Persistence**: Automatic data backup and persistence  
+✅ **Easy Updates**: Simple container rebuild process  
+✅ **Scalability**: Easy to scale horizontally  
+
+### Docker Installation
+
+#### On Ubuntu/Debian
+```bash
+# Update package index
+sudo apt update
+
+# Install Docker
+sudo apt install -y docker.io docker-compose
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Start and enable Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Log out and log back in for group changes to take effect
+```
+
+#### On CentOS/RHEL
+```bash
+# Install Docker
+sudo yum install -y docker docker-compose
+
+# Start and enable Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add user to docker group
+sudo usermod -aG docker $USER
+```
+
+#### On Windows/macOS
+Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+### Docker Deployment Steps
+
+1. **Clone the application repository**
+```bash
+git clone <repository-url> research_summary_app
+cd research_summary_app
+```
+
+2. **Set up environment variables**
+```bash
+# Copy the Docker environment example file
+cp .env.docker-example .env
+
+# Edit the .env file with your API key
+nano .env  # or use your preferred text editor
+```
+
+3. **Configure your API key**
+```bash
+# In the .env file, replace the placeholder with your actual API key
+ABACUSAI_API_KEY=your_actual_abacusai_api_key_here
+```
+
+4. **Deploy with Docker Compose**
+```bash
+# Build and start the application
+docker-compose up -d --build
+
+# Check if the container is running
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+```
+
+5. **Access the application**
+- Open your browser and navigate to `http://your-server-ip:8501`
+- For local deployment: `http://localhost:8501`
+
+### Docker Management Commands
+
+```bash
+# Start the application
+docker-compose up -d
+
+# Stop the application
+docker-compose down
+
+# Restart the application
+docker-compose restart
+
+# View logs
+docker-compose logs -f research-app
+
+# Update the application
+git pull origin main
+docker-compose down
+docker-compose up -d --build
+
+# Backup data
+tar -czf research_backup_$(date +%Y%m%d_%H%M%S).tar.gz data/
+
+# Restore data
+tar -xzf research_backup_YYYYMMDD_HHMMSS.tar.gz
+```
+
+### Docker Production Configuration
+
+For production environments, consider these additional configurations:
+
+1. **Use a reverse proxy (nginx)**
+```yaml
+# docker-compose.production.yml
+version: '3.8'
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - research-app
+    restart: unless-stopped
+
+  research-app:
+    build: .
+    expose:
+      - "8501"
+    environment:
+      - ABACUSAI_API_KEY=${ABACUSAI_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+```
+
+2. **Set up SSL/TLS certificates**
+```bash
+# Use Let's Encrypt for free SSL certificates
+sudo apt install certbot
+sudo certbot --nginx -d yourdomain.com
+```
+
+3. **Configure monitoring and health checks**
+```yaml
+# Add to docker-compose.yml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+```
+
+### Docker Troubleshooting
+
+#### Common Issues and Solutions
+
+**Port Already in Use**
+```bash
+# Check what's using port 8501
+sudo netstat -tulnp | grep :8501
+
+# Kill the process using the port
+sudo kill -9 <process_id>
+
+# Or use a different port in docker-compose.yml
+ports:
+  - "8502:8501"
+```
+
+**Permission Issues**
+```bash
+# Fix data directory permissions
+sudo chown -R $USER:$USER ./data ./logs
+chmod -R 755 ./data ./logs
+```
+
+**Container Won't Start**
+```bash
+# Check container logs
+docker-compose logs research-app
+
+# Check if all required environment variables are set
+docker-compose config
+
+# Verify Docker daemon is running
+sudo systemctl status docker
+```
+
+**API Key Issues**
+```bash
+# Verify .env file exists and is properly configured
+cat .env
+
+# Check container environment variables
+docker-compose exec research-app env | grep ABACUSAI
+
+# Test API key manually
+docker-compose exec research-app python -c "
+import os
+print('API Key:', os.getenv('ABACUSAI_API_KEY', 'NOT SET'))
+"
+```
+
+**Database/Data Issues**
+```bash
+# Reset database (WARNING: This will delete all data)
+docker-compose down
+rm -rf ./data/db/*
+docker-compose up -d
+
+# Check data directory permissions
+ls -la ./data/
+
+# Verify data persistence
+docker-compose down
+docker-compose up -d
+# Your data should still be there
+```
+
+**Memory Issues**
+```bash
+# Check container memory usage
+docker stats research-made-readable
+
+# Increase memory limit in docker-compose.yml
+services:
+  research-app:
+    mem_limit: 2g
+    mem_reservation: 1g
+```
+
+### Docker Security Best Practices
+
+1. **Environment Variables**
+```bash
+# Use Docker secrets for sensitive data
+echo "your_api_key_here" | docker secret create abacusai_api_key -
+
+# Reference in docker-compose.yml
+secrets:
+  - abacusai_api_key
+```
+
+2. **Network Security**
+```yaml
+# Use custom networks
+networks:
+  research-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+```
+
+3. **User Permissions**
+```dockerfile
+# Run as non-root user (already configured in Dockerfile)
+USER streamlit
+```
+
+4. **Resource Limits**
+```yaml
+# Set resource limits
+deploy:
+  resources:
+    limits:
+      cpus: '2.0'
+      memory: 2G
+    reservations:
+      memory: 1G
+```
+
+## 🖥️ Traditional VM Deployment
+
+For users who prefer manual installation or have specific requirements that need customization.
+
+### VM Setup
 
 ### 1. Initial Server Setup
 
