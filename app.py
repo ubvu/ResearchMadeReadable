@@ -80,13 +80,14 @@ def initialize_app():
     # Initialize session state
     SessionManager.init_session_state()
     
-    # Create database tables
+    # Initialize DuckDB and Parquet storage
     try:
         create_tables()
         st.session_state.database_available = True
+        st.session_state.database_type = "DuckDB + Parquet"
     except Exception as e:
         st.session_state.database_available = False
-        st.warning(f"Database not available: {str(e)}. Some features may be limited.")
+        st.warning(f"DuckDB storage not available: {str(e)}. Some features may be limited.")
 
 def render_sidebar():
     """Render the sidebar navigation."""

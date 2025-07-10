@@ -1,3 +1,4 @@
+
 # Research made Readable - AI-Powered Research Summary Platform
 
 A comprehensive Streamlit application for generating and evaluating AI-powered research paper summaries.
@@ -33,12 +34,11 @@ A comprehensive Streamlit application for generating and evaluating AI-powered r
 
 ## Installation
 
-For full deployment on a production environment see the [Deployment guide](./docs/deployment.md).
-
 ### Prerequisites
 - Python 3.8 or higher
-- PostgreSQL database (automatically configured)
 - Internet connection for AI model access
+
+> **Note**: No external database installation required! The application uses DuckDB with Parquet file storage for a completely self-contained setup.
 
 ### Quick Setup
 
@@ -77,17 +77,14 @@ pip install -r requirements.txt
 ```
 
 2. **Set up environment variables**
-The application uses a PostgreSQL database and AI model APIs. These are automatically configured during setup.
+The application uses DuckDB for local data storage and AI model APIs. Database initialization is automatic on first run.
 
-3. **Initialize the database**
+3. **Create required directories**
 ```bash
-python -c "from src.database.models import create_tables; create_tables()"
+mkdir -p data/uploads data/exports data/db logs
 ```
 
-4. **Create required directories**
-```bash
-mkdir -p data/uploads data/exports logs
-```
+> **Simplified Setup**: No database server installation or configuration needed! DuckDB and Parquet files are created automatically in the `data/db/` directory.
 
 ## Usage
 
@@ -141,7 +138,7 @@ research_summary_app/
 │   │   ├── model_interface.py      # AI model integration
 │   │   └── prompts.py              # Default prompts
 │   ├── database/
-│   │   ├── models.py               # Database schema
+│   │   ├── models.py               # DuckDB schema definitions
 │   │   └── operations.py           # Database operations
 │   ├── parsers/
 │   │   ├── bibtex_parser.py        # BibTeX file parser
@@ -154,19 +151,68 @@ research_summary_app/
 │       ├── session_manager.py      # Session management
 │       └── helpers.py              # Utility functions
 ├── data/
+│   ├── db/                         # DuckDB and Parquet files
+│   │   ├── research_app.duckdb     # DuckDB database file
+│   │   ├── papers.parquet          # Papers data storage
+│   │   ├── summaries.parquet       # Summaries data storage
+│   │   ├── translations.parquet    # Translations data storage
+│   │   └── evaluations.parquet     # Evaluations data storage
 │   ├── uploads/                    # Uploaded files
 │   └── exports/                    # Exported data
+├── tests_and_debug/                # Testing and debugging files
+│   ├── README.md                   # Testing documentation
+│   ├── test_app.py                 # Interactive BibTeX parser test
+│   ├── test_bibtex.bib             # Test BibTeX data
+│   ├── debug_bibtex_detailed.py    # Detailed BibTeX debugging
+│   ├── debug_standalone.py         # Standalone parser testing
+│   ├── debug_validation.py         # Validation step debugging
+│   ├── test_bibtex_debug.py        # BibTeX parser unit tests
+│   └── test_fixed_parser.py        # Fixed parser implementation tests
 └── docs/
     └── deployment.md               # Deployment instructions
 ```
 
-## Database Schema
+## Database Architecture
 
-The application uses PostgreSQL with three main tables:
+The application uses **DuckDB** with **Parquet file storage** for optimal performance and portability:
 
-- **Papers**: Stores research paper metadata, abstracts, and full text
-- **Summaries**: Stores generated summaries with model metadata
-- **Evaluations**: Stores human evaluations of summary quality
+### Storage Format
+- **DuckDB**: Fast, embedded SQL database for queries and operations
+- **Parquet Files**: Columnar storage format for efficient data storage and retrieval
+- **Self-contained**: No external database server required
+
+### Data Tables
+- **Papers** (`papers.parquet`): Research paper metadata, abstracts, and full text
+- **Summaries** (`summaries.parquet`): Generated summaries with model metadata and parameters
+- **Translations** (`translations.parquet`): Multi-language translations of summaries
+- **Evaluations** (`evaluations.parquet`): Human evaluations of summary quality and readability
+
+### Benefits
+- **Portable**: Copy the entire `data/db/` directory to move your data
+- **Fast**: DuckDB optimized for analytical workloads
+- **No Setup**: Database files created automatically on first run
+- **Efficient**: Parquet format provides excellent compression and query performance
+
+## 🚀 Portability & Deployment Advantages
+
+### Complete Self-Containment
+- **Zero External Dependencies**: No PostgreSQL server installation required
+- **File-Based Storage**: All data stored in portable Parquet files
+- **Single Directory Deployment**: Copy the entire application directory to any machine
+
+### Easy Backup & Migration
+```bash
+# Backup your entire database
+cp -r data/db/ backup_$(date +%Y%m%d)/
+
+# Migrate to new server
+scp -r research_summary_app/ user@newserver:/path/to/deployment/
+```
+
+### Development to Production
+- **Identical Architecture**: Development and production use the same storage format
+- **No Configuration Changes**: No database connection strings or credentials to manage
+- **Instant Setup**: Run `streamlit run app.py` on any machine with Python
 
 ## API Integration
 
@@ -181,10 +227,10 @@ The application integrates with multiple AI models through a unified API interfa
 
 ### Common Issues
 
-1. **Database Connection Error**
-   - Ensure PostgreSQL is running
-   - Check environment variables in `.env` file
-   - Verify database permissions
+1. **Database File Access Issues**
+   - Ensure the `data/db/` directory exists and is writable
+   - Check file permissions for Parquet files
+   - Verify sufficient disk space for database operations
 
 2. **AI Model API Errors**
    - Check API key configuration
@@ -201,11 +247,56 @@ The application integrates with multiple AI models through a unified API interfa
    - Check if PDF is text-based (not scanned images)
    - Verify PDF is not password-protected
 
+5. **Data Migration or Corruption**
+   - DuckDB automatically handles data integrity
+   - Parquet files can be verified using DuckDB directly
+   - Backup/restore is as simple as copying the `data/db/` directory
+
 ### Logs and Debugging
 
 - Check browser console for JavaScript errors
 - Review Streamlit logs in terminal
-- Database connection logs in application output
+- DuckDB operations are logged in application output
+- Database files are created automatically if missing
+
+## Testing and Development
+
+### Testing Suite
+The application includes a comprehensive testing suite located in the `tests_and_debug/` directory. This directory contains:
+
+- **Interactive test applications** for BibTeX parsing
+- **Debug scripts** for troubleshooting parsing issues
+- **Unit tests** for parser functionality
+- **Test data files** with real research paper examples
+
+### Running Tests
+To run the testing suite:
+
+```bash
+# Run individual test files
+python tests_and_debug/test_app.py
+python tests_and_debug/debug_bibtex_detailed.py
+
+# Run interactive BibTeX parser test
+streamlit run tests_and_debug/test_app.py
+
+# Run all debug scripts
+cd tests_and_debug
+for file in debug_*.py test_*.py; do
+    echo "Running $file..."
+    python "$file"
+    echo "---"
+done
+```
+
+### Test Coverage
+The testing suite focuses on:
+- **BibTeX parsing** with complex formatting scenarios
+- **Edge cases** handling (spaces in keys, special characters, long abstracts)
+- **Database operations** with DuckDB and Parquet storage
+- **Error handling** and validation processes
+
+For detailed information about each test file and debugging procedure, see the [Testing README](tests_and_debug/README.md).
 
 ## Contributing
 
@@ -228,13 +319,6 @@ For support and questions:
 - Review the documentation
 - Submit issues through the project repository
 
-## Screenshots
-
-![](./docs/img/01-home.jpeg)
-![](./docs/img/02-generator.jpeg)
-![](./docs/img/03-evaluator.jpeg)
-
 ---
 
 **Research made Readable** - Making research accessible through AI-powered summarization.
-

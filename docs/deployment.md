@@ -7,9 +7,10 @@ This guide provides instructions for deploying the Research made Readable applic
 
 - Ubuntu 20.04 LTS or later
 - Python 3.8 or higher
-- PostgreSQL 12 or higher
-- 4GB RAM minimum (8GB recommended)
-- 20GB disk space minimum
+- 2GB RAM minimum (4GB recommended)
+- 10GB disk space minimum
+
+> **Simplified Deployment**: No external database installation required! The application uses DuckDB with Parquet file storage for a completely self-contained setup.
 
 ## VM Setup
 
@@ -20,7 +21,7 @@ This guide provides instructions for deploying the Research made Readable applic
 sudo apt update && sudo apt upgrade -y
 
 # Install required system packages
-sudo apt install -y python3 python3-pip python3-venv git nginx supervisor postgresql postgresql-contrib
+sudo apt install -y python3 python3-pip python3-venv git nginx supervisor
 
 # Create application user
 sudo useradd -m -s /bin/bash research-made-readable
@@ -29,26 +30,13 @@ sudo usermod -aG sudo research-made-readable
 
 ### 2. Database Setup
 
-```bash
-# Switch to postgres user
-sudo -u postgres psql
+> **No Database Setup Required!** The application uses DuckDB with Parquet files for data storage. Database files are created automatically in the `data/db/` directory when the application first runs.
 
-# Create database and user
-CREATE DATABASE research_made_readable;
-CREATE USER research_made_readable WITH PASSWORD 'your_secure_password';
-GRANT ALL PRIVILEGES ON DATABASE research_made_readable TO research_made_readable;
-\q
-
-# Configure PostgreSQL
-sudo nano /etc/postgresql/12/main/postgresql.conf
-# Uncomment and set: listen_addresses = 'localhost'
-
-sudo nano /etc/postgresql/12/main/pg_hba.conf
-# Add line: local   research_made_readable    research_made_readable                    md5
-
-# Restart PostgreSQL
-sudo systemctl restart postgresql
-```
+**Benefits of this approach:**
+- No external database server installation or configuration
+- Automatic database initialization on first startup
+- Portable data storage - simply copy the `data/db/` directory to backup or migrate
+- No database credentials or connection strings to manage
 
 ### 3. Application Deployment
 
@@ -67,16 +55,18 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create environment file
+# Create environment file (only API key needed)
 cat > .env << EOF
-DATABASE_URL=postgresql://research_made_readable:your_secure_password@localhost/research_made_readable
 ABACUSAI_API_KEY=your_api_key_here
 EOF
 
 # Set permissions
 chmod 600 .env
 
-# Initialize database
+# Create required directories
+mkdir -p data/db data/uploads data/exports logs
+
+# Initialize application (database files created automatically)
 python setup.py
 ```
 
@@ -163,17 +153,28 @@ sudo tail -f /var/log/research-made-readable.log
 sudo supervisorctl restart research-made-readable
 ```
 
-### 2. Database Maintenance
+### 2. Data Backup and Maintenance
 
 ```bash
-# Backup database
-sudo -u postgres pg_dump research_made_readable > backup_$(date +%Y%m%d).sql
+# Backup all data (simple file copy)
+cd /home/research-made-readable/research_summary_app
+tar -czf backup_$(date +%Y%m%d).tar.gz data/db/
 
-# Restore database
-sudo -u postgres psql research_made_readable < backup_20240101.sql
+# Alternative: Copy data directory
+cp -r data/db/ ../backups/backup_$(date +%Y%m%d)/
 
-# Database maintenance
-sudo -u postgres psql research_made_readable -c "VACUUM ANALYZE;"
+# Restore data (simple file copy)
+cd /home/research-made-readable/research_summary_app
+tar -xzf backup_20240101.tar.gz
+
+# Verify data integrity (optional)
+python -c "
+import duckdb
+conn = duckdb.connect('data/db/research_app.duckdb')
+print('Tables:', conn.execute('SHOW TABLES').fetchall())
+conn.close()
+print('Data verification complete')
+"
 ```
 
 ### 3. System Updates
@@ -224,16 +225,17 @@ add_header X-XSS-Protection "1; mode=block";
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
 ```
 
-### 3. Database Security
+### 3. Data Security
 
 ```bash
-# Secure PostgreSQL
-sudo nano /etc/postgresql/12/main/postgresql.conf
-# Set: ssl = on
-# Set: password_encryption = scram-sha-256
+# Secure data directory permissions
+sudo chown -R research-made-readable:research-made-readable /home/research-made-readable/research_summary_app/data/
+sudo chmod -R 750 /home/research-made-readable/research_summary_app/data/db/
 
-# Restart PostgreSQL
-sudo systemctl restart postgresql
+# Secure environment file
+sudo chmod 600 /home/research-made-readable/research_summary_app/.env
+
+# Note: DuckDB files are local to the application - no network security concerns
 ```
 
 ## Backup and Recovery
@@ -247,22 +249,24 @@ sudo nano /home/research-made-readable/backup.sh
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
 BACKUP_DIR="/home/research-made-readable/backups"
+APP_DIR="/home/research-made-readable/research_summary_app"
 mkdir -p $BACKUP_DIR
 
-# Database backup
-sudo -u postgres pg_dump research_made_readable > $BACKUP_DIR/db_backup_$DATE.sql
+# Data backup (DuckDB and Parquet files)
+tar -czf $BACKUP_DIR/data_backup_$DATE.tar.gz -C $APP_DIR data/db/
 
-# Application backup
-tar -czf $BACKUP_DIR/app_backup_$DATE.tar.gz /home/research-made-readable/research_summary_app
+# Full application backup (including data)
+tar -czf $BACKUP_DIR/app_backup_$DATE.tar.gz $APP_DIR
 
 # Clean old backups (keep last 30 days)
-find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
-find $BACKUP_DIR -name "*.tar.gz" -mtime +30 -delete
+find $BACKUP_DIR -name "*_backup_*.tar.gz" -mtime +30 -delete
+
+echo "Backup completed: $DATE"
 
 # Make executable
 sudo chmod +x /home/research-made-readable/backup.sh
 
-# Add to crontab
+# Add to crontab for daily backups
 sudo crontab -e
 # Add: 0 2 * * * /home/research-made-readable/backup.sh
 ```
@@ -270,30 +274,42 @@ sudo crontab -e
 ### 2. Recovery Procedures
 
 ```bash
-# Restore database
-sudo -u postgres psql research_made_readable < /home/research-made-readable/backups/db_backup_YYYYMMDD_HHMMSS.sql
+# Stop application first
+sudo supervisorctl stop research-made-readable
 
-# Restore application
-tar -xzf /home/research-made-readable/backups/app_backup_YYYYMMDD_HHMMSS.tar.gz -C /
+# Restore data only (DuckDB and Parquet files)
+cd /home/research-made-readable/research_summary_app
+tar -xzf /home/research-made-readable/backups/data_backup_YYYYMMDD_HHMMSS.tar.gz
 
-# Restart services
-sudo supervisorctl restart research-made-readable
+# OR restore entire application
+tar -xzf /home/research-made-readable/backups/app_backup_YYYYMMDD_HHMMSS.tar.gz -C /home/research-made-readable/
+
+# Set proper permissions
+sudo chown -R research-made-readable:research-made-readable /home/research-made-readable/research_summary_app
+sudo chmod -R 750 /home/research-made-readable/research_summary_app/data/db/
+
+# Restart application
+sudo supervisorctl start research-made-readable
 ```
 
 ## Performance Optimization
 
-### 1. Database Optimization
+### 1. Data Storage Optimization
 
 ```bash
-# Configure PostgreSQL for performance
-sudo nano /etc/postgresql/12/main/postgresql.conf
+# DuckDB automatically optimizes performance, but you can:
 
-# Recommended settings:
-shared_buffers = 256MB
-effective_cache_size = 1GB
-work_mem = 4MB
-maintenance_work_mem = 64MB
-max_connections = 100
+# Monitor disk space usage
+df -h /home/research-made-readable/research_summary_app/data/db/
+
+# Check Parquet file sizes
+ls -lah /home/research-made-readable/research_summary_app/data/db/*.parquet
+
+# Ensure sufficient disk space for data growth
+# DuckDB compresses data efficiently with Parquet format
+# Typical compression ratio: 5-10x compared to raw CSV data
+
+# For large datasets, consider SSD storage for better I/O performance
 ```
 
 ### 2. Application Optimization
@@ -327,10 +343,10 @@ textColor = "#1F2937"
    - Verify environment variables in `.env`
    - Check database connectivity
 
-2. **Database connection issues**
-   - Verify PostgreSQL is running: `sudo systemctl status postgresql`
-   - Check database credentials
-   - Review PostgreSQL logs: `sudo tail -f /var/log/postgresql/postgresql-12-main.log`
+2. **Data storage issues**
+   - Check if `data/db/` directory exists and is writable
+   - Verify Parquet files are not corrupted: `python -c "import duckdb; duckdb.connect('data/db/research_app.duckdb').execute('SHOW TABLES')"`
+   - Check disk space: `df -h /home/research-made-readable/research_summary_app/data/db/`
 
 3. **Nginx errors**
    - Check Nginx configuration: `sudo nginx -t`
@@ -342,15 +358,17 @@ textColor = "#1F2937"
 
 ### Performance Issues
 
-1. **Slow database queries**
-   - Check database indexes
-   - Run VACUUM ANALYZE
-   - Monitor query performance
+1. **Slow data operations**
+   - DuckDB automatically optimizes queries
+   - Check available disk space for temporary operations
+   - Consider SSD storage for better I/O performance
+   - Monitor Parquet file sizes for unexpected growth
 
 2. **High memory usage**
    - Monitor with `htop` or `top`
    - Adjust Streamlit configuration
-   - Consider upgrading server resources
+   - DuckDB has efficient memory management for Parquet files
+   - Consider upgrading server resources for large datasets
 
 ## Maintenance Schedule
 
@@ -358,18 +376,52 @@ textColor = "#1F2937"
 - Monitor application logs
 - Check system resources
 - Verify backup completion
+- Monitor disk space in `data/db/` directory
 
 ### Weekly
 - Review security logs
 - Update system packages
-- Check disk space usage
+- Check Parquet file sizes and growth trends
+- Verify data directory permissions
 
 ### Monthly
 - Analyze application performance
-- Review database performance
+- Review DuckDB storage efficiency
 - Update application dependencies
 - Security audit
+- Test backup and recovery procedures
+
+## 🚀 DuckDB/Parquet Architecture Benefits
+
+### Simplified Deployment
+- **No Database Server**: Eliminated PostgreSQL installation and configuration
+- **Self-Contained**: All data stored in portable Parquet files
+- **Reduced Dependencies**: Fewer system packages and services to manage
+- **Faster Setup**: Database initialization happens automatically
+
+### Operational Advantages
+- **Simple Backups**: Copy the `data/db/` directory - that's it!
+- **Easy Migration**: Transfer the entire application directory to any server
+- **No Database Credentials**: No connection strings or passwords to manage
+- **Portable Development**: Identical setup for development and production
+
+### Performance & Reliability
+- **Optimized Storage**: Parquet format provides excellent compression and query performance
+- **ACID Compliance**: DuckDB ensures data integrity
+- **Automatic Optimization**: No manual database tuning required
+- **Efficient Memory Usage**: DuckDB designed for analytical workloads
+
+### Deployment Comparison
+
+| Aspect | PostgreSQL (Before) | DuckDB + Parquet (After) |
+|--------|-------------------|-------------------------|
+| System Packages | 8+ packages including PostgreSQL | 5 basic packages |
+| Database Setup | Manual configuration, users, permissions | Automatic initialization |
+| Backup Method | `pg_dump` + application files | Simple directory copy |
+| Migration | Database dump/restore + files | Copy entire directory |
+| Security | Database passwords, network config | File permissions only |
+| Dependencies | External database service | Self-contained |
 
 ---
 
-This deployment guide provides a comprehensive setup for production deployment of Research made Readable on an external VM. Adjust configurations based on your specific requirements and security policies.
+This deployment guide provides a comprehensive setup for production deployment of Research made Readable on an external VM with the new simplified DuckDB/Parquet architecture. The deployment process is now significantly simpler and more reliable than the previous PostgreSQL-based setup.
